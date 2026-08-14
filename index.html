@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>إدارة الصقور — نظام مزارع الصقور</title>
+    <meta name="description" content="منصة متكاملة لإدارة مزارع الصقور بنظام صلاحيات هرمي">
+    <meta name="theme-color" content="#070a11">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Inter:wght@400;600;700;800&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Bengali:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase SDK v10 (compat mode) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <!-- i18n must load before DOM content -->
+    <script src="i18n.js"></script>
+</head>
+<body>
+
+<!-- ══ LOADING SCREEN ════════════════════════ -->
+<div id="loadingScreen">
+    <div class="ls-icon">
+        <svg viewBox="0 0 56 56" fill="none">
+            <path d="M28 4C23 4 14 13 12 22C10 31 13 42 18 47C23 52 27 55 28 55C29 55 33 52 38 47C43 42 46 31 44 22C42 13 33 4 28 4Z" fill="url(#lg1)"/>
+            <circle cx="23" cy="24" r="2.5" fill="rgba(255,255,255,0.8)"/>
+            <circle cx="33" cy="24" r="2.5" fill="rgba(255,255,255,0.8)"/>
+            <defs>
+                <linearGradient id="lg1" x1="12" y1="4" x2="44" y2="55">
+                    <stop offset="0%" stop-color="#e8b86d"/>
+                    <stop offset="100%" stop-color="#a07030"/>
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+    <div class="ls-spinner"></div>
+    <div class="ls-text" data-i18n="loading">جاري التحميل...</div>
+</div>
+
+<!-- ══ LOGIN ══════════════════════════════════ -->
+<div class="login-screen" id="loginScreen" style="display:none">
+    <div class="login-ambient"></div>
+
+    <!-- Language switcher (login page) -->
+    <div class="login-lang">
+        <button class="lang-btn active" data-lang="ar" onclick="setLanguage('ar')">🇸🇦 عربي</button>
+        <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">🇬🇧 EN</button>
+        <button class="lang-btn" data-lang="ur" onclick="setLanguage('ur')">🇵🇰 اردو</button>
+        <button class="lang-btn" data-lang="bn" onclick="setLanguage('bn')">🇧🇩 বাং</button>
+    </div>
+
+    <div class="login-box">
+        <div class="lb-brand">
+            <div class="lb-icon">
+                <svg viewBox="0 0 56 56" fill="none">
+                    <path d="M28 4C23 4 14 13 12 22C10 31 13 42 18 47C23 52 27 55 28 55C29 55 33 52 38 47C43 42 46 31 44 22C42 13 33 4 28 4Z" fill="url(#lg2)"/>
+                    <circle cx="23" cy="24" r="2.5" fill="rgba(255,255,255,0.8)"/>
+                    <circle cx="33" cy="24" r="2.5" fill="rgba(255,255,255,0.8)"/>
+                    <defs>
+                        <linearGradient id="lg2" x1="12" y1="4" x2="44" y2="55">
+                            <stop offset="0%" stop-color="#e8b86d"/>
+                            <stop offset="100%" stop-color="#a07030"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <div class="lb-brand-text">
+                <span class="lb-title" data-i18n="app.title">إدارة الصقور</span>
+                <span class="lb-sub" data-i18n="app.subtitle">النظام المتكامل للمزارع</span>
+            </div>
+        </div>
+
+        <form id="loginForm">
+            <div class="lf-field">
+                <label for="loginUser" data-i18n="login.username">اسم المستخدم</label>
+                <div class="lf-inp-wrap">
+                    <svg class="lf-ico" viewBox="0 0 20 20" fill="currentColor"><path d="M10 10a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 1114 0H3z"/></svg>
+                    <input type="text" id="loginUser" data-i18n-ph="login.username_ph" placeholder="أدخل اسم المستخدم" autocomplete="username" required>
+                </div>
+            </div>
+            <div class="lf-field">
+                <label for="loginPass" data-i18n="login.password">كلمة المرور</label>
+                <div class="lf-inp-wrap">
+                    <svg class="lf-ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"/></svg>
+                    <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" required>
+                    <button type="button" class="lf-eye" id="togglePass">
+                        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <p class="lf-err" id="loginError"></p>
+            <button type="submit" class="lf-submit" id="loginSubmitBtn" data-i18n="login.submit">دخول</button>
+        </form>
+
+        <div class="lb-hint">
+            <span data-i18n="login.hint">بيانات الدخول الافتراضية:</span>
+            <code>admin</code> / <code>admin123</code>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MAIN APP ════════════════════════════════ -->
+<div id="appRoot" style="display:none" class="app-root">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sb-brand">
+            <div class="sb-logo">
+                <svg viewBox="0 0 40 40" fill="none">
+                    <path d="M20 2C16 2 10 9 8 16C6 23 8 31 12 35C16 39 19 41 20 41C21 41 24 39 28 35C32 31 34 23 32 16C30 9 24 2 20 2Z" fill="url(#sbg)"/>
+                    <circle cx="16" cy="17" r="2" fill="rgba(255,255,255,0.8)"/>
+                    <circle cx="24" cy="17" r="2" fill="rgba(255,255,255,0.8)"/>
+                    <defs><linearGradient id="sbg" x1="8" y1="2" x2="32" y2="41"><stop offset="0%" stop-color="#e8b86d"/><stop offset="100%" stop-color="#a07030"/></linearGradient></defs>
+                </svg>
+            </div>
+            <div>
+                <div class="sb-app-name" data-i18n="app.title">إدارة الصقور</div>
+                <div class="sb-app-sub" data-i18n="app.subtitle">النظام المتكامل للمزارع</div>
+            </div>
+        </div>
+
+        <!-- Farm label (non-admin) -->
+        <div class="sb-farm-label" id="sbFarmLabel" style="display:none">
+            <span class="sbfl-dot"></span>
+            <span class="sbfl-name" id="sbFarmName">—</span>
+        </div>
+
+        <nav class="sb-nav" id="sbNav">
+            <button class="sb-link active" data-page="dashboard" id="navDashboard">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+                <span data-i18n="nav.dashboard">الملخص</span>
+            </button>
+            <button class="sb-link" data-page="falcons" id="navFalcons">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C9 2 5 7 4 12C3 17 5 21 8 23C10 24 12 25 12 25C12 25 14 24 16 23C19 21 21 17 20 12C19 7 15 2 12 2Z"/><circle cx="9" cy="11" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.5" fill="currentColor" stroke="none"/></svg>
+                <span data-i18n="nav.falcons">الصقور</span>
+            </button>
+            <button class="sb-link" data-page="daily" id="navDaily">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"/></svg>
+                <span data-i18n="nav.daily">التسجيل اليومي</span>
+            </button>
+            <button class="sb-link" data-page="management" id="navManagement" style="display:none">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                <span data-i18n="nav.management">إدارة المزارع</span>
+                <span class="sb-badge" id="farmsBadge">0</span>
+            </button>
+        </nav>
+
+        <!-- Language switcher in sidebar -->
+        <div class="lang-switcher">
+            <button class="lang-btn active" data-lang="ar" onclick="setLanguage('ar')">🇸🇦</button>
+            <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">🇬🇧</button>
+            <button class="lang-btn" data-lang="ur" onclick="setLanguage('ur')">🇵🇰</button>
+            <button class="lang-btn" data-lang="bn" onclick="setLanguage('bn')">🇧🇩</button>
+        </div>
+
+        <div class="sb-bottom">
+            <div class="sb-avatar" id="sbAvatar">م</div>
+            <div class="sb-user-info">
+                <div class="sb-user-name" id="sbUserName">—</div>
+                <div class="sb-user-role" id="sbUserRole">—</div>
+            </div>
+            <button class="sb-logout" id="logoutBtn" title="خروج">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"/></svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sb-overlay" id="sbOverlay"></div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-area" id="mainArea">
+
+        <!-- Top bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+                </button>
+                <div class="topbar-breadcrumb" id="topbarBreadcrumb" data-i18n="nav.dashboard">الملخص</div>
+            </div>
+            <div class="topbar-right">
+                <div class="tb-stat"><span id="tbFalcons">0</span><span data-i18n="topbar.falcon_lbl">صقر</span></div>
+                <div class="tb-stat accent"><span id="tbLogs">0</span><span data-i18n="topbar.log_lbl">سجل اليوم</span></div>
+                <div class="tb-date" id="tbDate"></div>
+            </div>
+        </header>
+
+        <!-- PAGES -->
+        <div class="pages-wrap">
+
+            <!-- Farm filter tabs (Admin or users with multiple farms) -->
+            <div class="farm-tabs-row" id="farmTabsRow" style="display:none">
+                <div class="farm-tabs" id="farmTabs"></div>
+            </div>
+
+            <!-- ══ PAGE: DASHBOARD ══ -->
+            <section class="page active" id="pageDashboard">
+
+                <!-- KPI Row -->
+                <div class="kpi-row" id="kpiRow"></div>
+
+                <!-- Falcon cards -->
+                <div class="section-hdr">
+                    <h2 data-i18n="dash.falcon_cards">بطاقات الصقور</h2>
+                    <button class="btn btn-outline btn-sm" onclick="goPage('daily')">
+                        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a.5.5 0 01.5.5v5h5a.5.5 0 010 1h-5v5a.5.5 0 01-1 0v-5h-5a.5.5 0 010-1h5v-5A.5.5 0 018 2z"/></svg>
+                        <span data-i18n="dash.daily_btn">تسجيل يومي</span>
+                    </button>
+                </div>
+                <div class="falcon-grid" id="falconGrid">
+                    <div class="empty-state" id="dashEmpty">
+                        <div class="es-icon">🦅</div>
+                        <h3 data-i18n="dash.empty_title">لا توجد صقور</h3>
+                        <p data-i18n="dash.empty_sub">ابدأ بإضافة صقورك في صفحة الصقور</p>
+                        <button class="btn btn-primary" onclick="goPage('falcons')" data-i18n="dash.add_falcon_btn">إضافة صقر</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══ PAGE: FALCONS ══ -->
+            <section class="page" id="pageFalcons">
+                <!-- Add form -->
+                <div class="panel" id="addFalconPanel" style="display:none">
+                    <div class="panel-hdr">
+                        <h3 data-i18n="falcon.add_title">إضافة صقر جديد</h3>
+                        <button class="panel-toggle" id="falconFormToggle">
+                            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M7.646 4.646a.5.5 0 01.708 0l6 6a.5.5 0 01-.708.708L8 5.707l-5.646 5.647a.5.5 0 01-.708-.708l6-6z"/></svg>
+                        </button>
+                    </div>
+                    <form id="falconForm" class="panel-body grid-form">
+                        <!-- Photo -->
+                        <div class="pf-photo-col">
+                            <div class="photo-zone" id="photoZone">
+                                <input type="file" id="falconPhoto" accept="image/*" style="display:none">
+                                <div class="pz-idle" id="pzIdle" onclick="document.getElementById('falconPhoto').click()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/><path d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/></svg>
+                                    <span data-i18n="falcon.upload_photo">رفع صورة الصقر</span>
+                                    <span class="pz-sub" data-i18n="falcon.photo_click">اضغط للاختيار</span>
+                                </div>
+                                <img class="pz-preview" id="pzPreview" src="" alt="" style="display:none" onclick="document.getElementById('falconPhoto').click()">
+                                <button type="button" class="pz-remove" id="pzRemove" style="display:none">✕</button>
+                            </div>
+                        </div>
+                        <!-- Fields -->
+                        <div class="fg" id="falconFarmGroup"><label data-i18n="falcon.farm">المزرعة <em>*</em></label>
+                            <select id="falconFarmId" required>
+                                <option value="" data-i18n="falcon.choose_farm">— اختر المزرعة —</option>
+                            </select>
+                        </div>
+                        <div class="fg"><label data-i18n="falcon.name">اسم الصقر <em>*</em></label><input type="text" id="falconName" data-i18n-ph="falcon.name_ph" placeholder="اسم الصقر" required></div>
+                        <div class="fg"><label data-i18n="falcon.ring">رقم الحجل 💍</label><input type="text" id="falconRingNumber" data-i18n-ph="falcon.ring_ph" placeholder="AE-2024-001"></div>
+                        <div class="fg"><label data-i18n="falcon.type">نوع الصقر <em>*</em></label>
+                            <select id="falconType" required>
+                                <option value="" data-i18n="falcon.choose">اختر...</option>
+                                <option data-i18n="ftype.shaheen">شاهين</option>
+                                <option data-i18n="ftype.hurr">حر</option>
+                                <option data-i18n="ftype.wukri">وكري</option>
+                                <option data-i18n="ftype.gyr">جير</option>
+                                <option data-i18n="ftype.bahri">بحري</option>
+                                <option data-i18n="ftype.qurmosha">قرموشة</option>
+                                <option data-i18n="ftype.taba">تبع</option>
+                                <option data-i18n="ftype.other">أخرى</option>
+                            </select>
+                        </div>
+                        <div class="fg"><label data-i18n="falcon.weight">الوزن الابتدائي (جم) <em>*</em></label><input type="number" id="falconWeight" data-i18n-ph="falcon.weight_ph" placeholder="850" min="100" max="5000" required></div>
+                        <div class="fg"><label data-i18n="falcon.birthdate">تاريخ الميلاد</label><input type="date" id="falconBirthdate"><small class="fhint" id="ageDisplay" data-i18n="falcon.age_auto">العمر يُحسب تلقائياً</small></div>
+                        <div class="fg"><label data-i18n="falcon.father">اسم الأب</label><input type="text" id="falconFather" data-i18n-ph="falcon.father_ph" placeholder="اسم الأب"></div>
+                        <div class="fg"><label data-i18n="falcon.mother">اسم الأم</label><input type="text" id="falconMother" data-i18n-ph="falcon.mother_ph" placeholder="اسم الأم"></div>
+                        <div class="fg"><label data-i18n="falcon.gender">الجنس</label>
+                            <select id="falconGender">
+                                <option value="" data-i18n="falcon.gender_none">غير محدد</option>
+                                <option data-i18n="falcon.gender_m">ذكر (قرناس)</option>
+                                <option data-i18n="falcon.gender_f">أنثى (طير)</option>
+                            </select>
+                        </div>
+                        <div class="fg"><label data-i18n="falcon.health">الحالة الصحية</label>
+                            <select id="healthStatus">
+                                <option data-i18n="falcon.h_exc">ممتازة</option>
+                                <option data-i18n="falcon.h_good">جيدة</option>
+                                <option data-i18n="falcon.h_mid">متوسطة</option>
+                                <option data-i18n="falcon.h_treat">تحت العلاج</option>
+                            </select>
+                        </div>
+                        <div class="fg fg-full"><label data-i18n="falcon.notes">ملاحظات</label><textarea id="falconNotes" rows="2" data-i18n-ph="falcon.notes_ph" placeholder="ملاحظات إضافية..."></textarea></div>
+                        <div class="panel-footer">
+                            <button type="submit" class="btn btn-primary" data-i18n="falcon.add_btn">إضافة الصقر</button>
+                            <button type="button" class="btn btn-ghost" id="resetFalconBtn" data-i18n="falcon.clear_btn">مسح</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Search + Table -->
+                <div class="panel">
+                    <div class="panel-hdr">
+                        <div class="searchbar">
+                            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/></svg>
+                            <input type="text" id="searchInput" data-i18n-ph="tbl.search_ph" placeholder="ابحث بالاسم، رقم الحجل، النوع...">
+                        </div>
+                        <div style="display:flex;gap:.5rem">
+                            <button class="btn btn-outline btn-sm" id="exportBtn" style="display:none" data-i18n="tbl.export">تصدير CSV</button>
+                            <button class="btn btn-danger btn-sm" id="clearAllBtn" style="display:none" data-i18n="tbl.delete_all">حذف الكل</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table" id="falconsTable">
+                            <thead><tr>
+                                <th data-i18n="tbl.num">#</th>
+                                <th data-i18n="tbl.photo">الصورة</th>
+                                <th data-i18n="tbl.name">الاسم</th>
+                                <th data-i18n="tbl.ring">رقم الحجل</th>
+                                <th data-i18n="tbl.type">النوع</th>
+                                <th data-i18n="tbl.age">العمر</th>
+                                <th data-i18n="tbl.weight">الوزن</th>
+                                <th data-i18n="tbl.parents">الأب / الأم</th>
+                                <th data-i18n="tbl.status">الحالة</th>
+                                <th></th>
+                            </tr></thead>
+                            <tbody id="falconsBody"></tbody>
+                        </table>
+                        <div class="table-empty" id="tableEmpty" style="display:none">
+                            <div class="es-icon" style="font-size:2.5rem">🦅</div>
+                            <p data-i18n="tbl.empty">لا توجد صقور مسجلة</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══ PAGE: DAILY ══ -->
+            <section class="page" id="pageDaily">
+                <div class="panel">
+                    <div class="panel-hdr"><h3 data-i18n="daily.title">إدخال سجل اليوم</h3></div>
+                    <form id="dailyForm" class="panel-body">
+                        <!-- Falcon selector + preview -->
+                        <div class="falcon-selector-row">
+                            <div class="fg" style="flex:1">
+                                <label data-i18n="daily.select_lbl">اختر الصقر</label>
+                                <select id="dailyFalconId" required>
+                                    <option value="" data-i18n="daily.select_ph">— اختر الصقر —</option>
+                                </select>
+                            </div>
+                            <div class="falcon-preview-card" id="falconPreviewCard" style="display:none">
+                                <div class="fpc-photo-wrap">
+                                    <img class="fpc-photo" id="fpcPhoto" src="" alt="" style="display:none">
+                                    <div class="fpc-ph" id="fpcPh">🦅</div>
+                                </div>
+                                <div class="fpc-info">
+                                    <div class="fpc-header-row">
+                                        <h4 class="fpc-name" id="fpcName">—</h4>
+                                        <span class="fpc-farm-badge" id="fpcFarm">🌿 —</span>
+                                        <span class="fpc-ring" id="fpcRing"></span>
+                                    </div>
+                                    <div class="fpc-stats-row">
+                                        <div class="fpc-stat-item">
+                                            <span class="fpc-stat-lbl" data-i18n="daily.last_weight">آخر وزن:</span>
+                                            <strong class="fpc-stat-val" id="fpcLastWeight" style="color:var(--gold-200)">—</strong>
+                                        </div>
+                                        <div class="fpc-stat-item">
+                                            <span class="fpc-stat-lbl" data-i18n="falcon.type">النوع:</span>
+                                            <span class="fpc-stat-val" id="fpcType">—</span>
+                                        </div>
+                                        <div class="fpc-stat-item">
+                                            <span class="fpc-stat-lbl" data-i18n="fc.age_lbl">العمر:</span>
+                                            <span class="fpc-stat-val" id="fpcAge">—</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid-form" style="margin-top:1.25rem">
+                            <div class="fg"><label data-i18n="daily.date">التاريخ</label><input type="date" id="dailyDate" required></div>
+                            <div class="fg"><label data-i18n="daily.weight">الوزن (جم)</label><input type="number" id="dailyWeight" data-i18n-ph="daily.weight_ph" placeholder="820" min="50" max="5000"><small class="fhint" id="weightDiff"></small></div>
+                            <div class="fg"><label data-i18n="daily.food_type">نوع الأكل</label>
+                                <select id="dailyFoodType">
+                                    <option value="">—</option>
+                                    <option data-i18n="food.pigeon">حمام</option>
+                                    <option data-i18n="food.quail">سمان</option>
+                                    <option data-i18n="food.chicken">دجاج</option>
+                                    <option data-i18n="food.rabbit">أرانب</option>
+                                    <option data-i18n="food.beef">لحم بقري</option>
+                                    <option data-i18n="food.live">فرائس حية</option>
+                                    <option data-i18n="food.mixed">مختلط</option>
+                                </select>
+                            </div>
+                            <div class="fg"><label data-i18n="daily.food_amt">كمية الأكل (جم)</label><input type="number" id="dailyFoodAmount" data-i18n-ph="daily.food_amt_ph" placeholder="150" min="1" max="2000"></div>
+                            <div class="fg"><label data-i18n="daily.train_type">نوع التدريب</label>
+                                <select id="dailyTrainType">
+                                    <option value="">—</option>
+                                    <option data-i18n="train.free">طيران حر</option>
+                                    <option data-i18n="train.lure">تدريب على الطعم</option>
+                                    <option data-i18n="train.drone">طيران مع الطائرة</option>
+                                    <option data-i18n="train.land">تمرين البر</option>
+                                    <option data-i18n="train.race">سباق مسافة</option>
+                                    <option data-i18n="train.return">تمرين العودة</option>
+                                    <option data-i18n="train.rest">راحة</option>
+                                </select>
+                            </div>
+                            <div class="fg"><label data-i18n="daily.distance">المسافة (كم)</label><input type="number" id="dailyDistance" data-i18n-ph="daily.distance_ph" placeholder="5" min="0" max="500" step="0.1"></div>
+                            <div class="fg"><label data-i18n="daily.duration">المدة (دقيقة)</label><input type="number" id="dailyDuration" data-i18n-ph="daily.duration_ph" placeholder="30" min="1" max="480"></div>
+                            <div class="fg"><label data-i18n="daily.notes">ملاحظات</label><input type="text" id="dailyNotes" data-i18n-ph="daily.notes_ph" placeholder="ملاحظة..."></div>
+                        </div>
+                        <div class="panel-footer" style="margin-top:1.25rem">
+                            <button type="submit" class="btn btn-primary" data-i18n="daily.save">حفظ السجل</button>
+                            <button type="button" class="btn btn-ghost" onclick="resetDailyForm()" data-i18n="daily.clear">مسح</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="panel" style="margin-top:1.25rem">
+                    <div class="panel-hdr">
+                        <h3 data-i18n="daily.logs_title">السجلات</h3>
+                        <div style="display:flex;gap:.75rem;align-items:center">
+                            <label style="font-size:.8rem;color:var(--t2)" data-i18n="daily.filter_lbl">فلتر:</label>
+                            <select id="logFilterFalcon" class="mini-select">
+                                <option value="" data-i18n="daily.filter_all">الكل</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="log-list" id="dailyLogList">
+                        <div class="log-empty" data-i18n="daily.empty">لا توجد سجلات بعد</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══ PAGE: MANAGEMENT ══ -->
+            <section class="page" id="pageManagement">
+
+                <!-- FARMS (admin only) -->
+                <div id="farmsSection" style="display:none">
+                    <div class="section-hdr">
+                        <h2 data-i18n="mgmt.farms">المزارع</h2>
+                        <button class="btn btn-primary btn-sm" id="openAddFarmBtn" data-i18n="mgmt.add_farm">+ مزرعة جديدة</button>
+                    </div>
+                    <div class="farms-grid" id="farmsGrid">
+                        <div class="empty-state"><div class="es-icon">🌿</div><p data-i18n="mgmt.no_farms">لا توجد مزارع — أنشئ أول مزرعة</p></div>
+                    </div>
+                    <hr class="divider">
+                </div>
+
+                <!-- USERS -->
+                <div id="usersSection">
+                    <div class="section-hdr">
+                        <h2 id="usersSectionTitle" data-i18n="mgmt.users">المستخدمون</h2>
+                        <button class="btn btn-primary btn-sm" id="openAddUserBtn" data-i18n="mgmt.add_user">+ مستخدم جديد</button>
+                    </div>
+                    <div class="panel">
+                        <div class="table-wrap">
+                            <table class="data-table" id="usersTable">
+                                <thead><tr>
+                                    <th data-i18n="usr.num">#</th>
+                                    <th data-i18n="usr.username">المستخدم</th>
+                                    <th data-i18n="usr.name">الاسم</th>
+                                    <th data-i18n="usr.role">الدور</th>
+                                    <th data-i18n="usr.farm">المزرعة</th>
+                                    <th data-i18n="usr.date">تاريخ الإضافة</th>
+                                    <th></th>
+                                </tr></thead>
+                                <tbody id="usersBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div><!-- /pages-wrap -->
+    </div><!-- /main-area -->
+</div><!-- /app-root -->
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav-bar" id="mobileNavBar">
+    <div class="mnb-items">
+        <button class="mnb-link active" data-page="dashboard" id="mNavDashboard">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+            <span data-i18n="nav.dashboard">الملخص</span>
+        </button>
+        <button class="mnb-link" data-page="falcons" id="mNavFalcons">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C9 2 5 7 4 12C3 17 5 21 8 23C10 24 12 25 12 25C12 25 14 24 16 23C19 21 21 17 20 12C19 7 15 2 12 2Z"/><circle cx="9" cy="11" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.5" fill="currentColor" stroke="none"/></svg>
+            <span data-i18n="nav.falcons">الصقور</span>
+        </button>
+        <button class="mnb-link" data-page="daily" id="mNavDaily">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"/></svg>
+            <span data-i18n="nav.daily">التسجيل اليومي</span>
+        </button>
+        <button class="mnb-link" data-page="management" id="mNavManagement" style="display:none">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+            <span data-i18n="nav.management">الإدارة</span>
+        </button>
+        <!-- Profile & logout -->  
+        <button class="mnb-link" id="mNavProfile" onclick="openMobileProfile()">
+            <div class="mnb-avatar" id="mNavAvatar">م</div>
+            <span>حساب</span>
+        </button>
+    </div>
+</nav>
+
+<!-- Mobile Profile Sheet -->
+<div class="mobile-profile-sheet" id="mobileProfileSheet">
+    <div class="mps-overlay" onclick="closeMobileProfile()"></div>
+    <div class="mps-box">
+        <div class="mps-drag-handle"></div>
+        <div class="mps-user">
+            <div class="mps-avatar" id="mpsAvatar">م</div>
+            <div class="mps-info">
+                <div class="mps-name" id="mpsName">—</div>
+                <div class="mps-role" id="mpsRole">—</div>
+            </div>
+        </div>
+        <div class="mps-lang">
+            <span class="mps-section-lbl">اللغة</span>
+            <div class="mps-lang-btns">
+                <button class="lang-btn" data-lang="ar" onclick="setLanguage('ar');closeMobileProfile()">🇸🇦 عربي</button>
+                <button class="lang-btn" data-lang="en" onclick="setLanguage('en');closeMobileProfile()">🇬🇧 EN</button>
+                <button class="lang-btn" data-lang="ur" onclick="setLanguage('ur');closeMobileProfile()">🇵🇰 اردو</button>
+                <button class="lang-btn" data-lang="bn" onclick="setLanguage('bn');closeMobileProfile()">🇧🇩 বাং</button>
+            </div>
+        </div>
+        <button class="mps-logout" id="mpsLogoutBtn">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"/></svg>
+            تسجيل الخروج
+        </button>
+    </div>
+</div>
+
+<!-- ══ MODALS ════════════════════════════════ -->
+
+<!-- Edit Falcon -->
+<div class="modal-overlay" id="editFalconModal">
+    <div class="modal-box">
+        <div class="modal-hdr">
+            <h3 data-i18n="edit.falcon_title">تعديل الصقر</h3>
+            <button class="modal-close" onclick="closeModal('editFalconModal')">✕</button>
+        </div>
+        <form id="editFalconForm" class="modal-body">
+            <input type="hidden" id="editFalconId">
+            <div class="edit-photo-row">
+                <div class="photo-zone small" id="editPhotoZone">
+                    <input type="file" id="editFalconPhoto" accept="image/*" style="display:none">
+                    <div class="pz-idle" id="editPzIdle" onclick="document.getElementById('editFalconPhoto').click()">
+                        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"/></svg>
+                        <span data-i18n="falcon.change_photo">تغيير الصورة</span>
+                    </div>
+                    <img class="pz-preview" id="editPzPreview" src="" alt="" style="display:none" onclick="document.getElementById('editFalconPhoto').click()">
+                    <button type="button" class="pz-remove" id="editPzRemove" style="display:none">✕</button>
+                </div>
+            </div>
+            <div class="grid-form">
+                <div class="fg fg-full" id="editFalconFarmGroup"><label data-i18n="falcon.farm">المزرعة <em>*</em></label>
+                    <select id="editFalconFarmId" required></select>
+                </div>
+                <div class="fg"><label data-i18n="edit.name">الاسم <em>*</em></label><input type="text" id="editName" required></div>
+                <div class="fg"><label data-i18n="falcon.ring">رقم الحجل 💍</label><input type="text" id="editRingNumber"></div>
+                <div class="fg"><label data-i18n="falcon.type">النوع <em>*</em></label>
+                    <select id="editType" required>
+                        <option data-i18n="ftype.shaheen">شاهين</option>
+                        <option data-i18n="ftype.hurr">حر</option>
+                        <option data-i18n="ftype.wukri">وكري</option>
+                        <option data-i18n="ftype.gyr">جير</option>
+                        <option data-i18n="ftype.bahri">بحري</option>
+                        <option data-i18n="ftype.qurmosha">قرموشة</option>
+                        <option data-i18n="ftype.taba">تبع</option>
+                        <option data-i18n="ftype.other">أخرى</option>
+                    </select>
+                </div>
+                <div class="fg"><label data-i18n="falcon.weight">الوزن (جم) <em>*</em></label><input type="number" id="editWeight" min="100" max="5000" required></div>
+                <div class="fg"><label data-i18n="falcon.birthdate">تاريخ الميلاد</label><input type="date" id="editBirthdate"><small class="fhint" id="editAgeHint"></small></div>
+                <div class="fg"><label data-i18n="falcon.father">اسم الأب</label><input type="text" id="editFather"></div>
+                <div class="fg"><label data-i18n="falcon.mother">اسم الأم</label><input type="text" id="editMother"></div>
+                <div class="fg"><label data-i18n="falcon.gender">الجنس</label>
+                    <select id="editGender">
+                        <option value="" data-i18n="falcon.gender_none">غير محدد</option>
+                        <option data-i18n="falcon.gender_m">ذكر (قرناس)</option>
+                        <option data-i18n="falcon.gender_f">أنثى (طير)</option>
+                    </select>
+                </div>
+                <div class="fg"><label data-i18n="falcon.health">الحالة الصحية</label>
+                    <select id="editHealth">
+                        <option data-i18n="falcon.h_exc">ممتازة</option>
+                        <option data-i18n="falcon.h_good">جيدة</option>
+                        <option data-i18n="falcon.h_mid">متوسطة</option>
+                        <option data-i18n="falcon.h_treat">تحت العلاج</option>
+                    </select>
+                </div>
+                <div class="fg fg-full"><label data-i18n="falcon.notes">ملاحظات</label><textarea id="editNotes" rows="2"></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" data-i18n="edit.save">حفظ التعديلات</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editFalconModal')" data-i18n="edit.cancel">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add / Edit Farm -->
+<div class="modal-overlay" id="farmModal">
+    <div class="modal-box" style="max-width:500px">
+        <div class="modal-hdr">
+            <h3 id="farmModalTitle" data-i18n="farm.new_title">مزرعة جديدة</h3>
+            <button class="modal-close" onclick="closeModal('farmModal')">✕</button>
+        </div>
+        <form id="farmForm" class="modal-body">
+            <input type="hidden" id="farmFormId">
+            <div class="grid-form">
+                <div class="fg fg-full"><label data-i18n="farm.name">اسم المزرعة <em>*</em></label><input type="text" id="farmName" data-i18n-ph="farm.name_ph" placeholder="مثال: مزرعة الصقور الشمالية" required></div>
+                <div class="fg fg-full"><label data-i18n="farm.location">الموقع</label><input type="text" id="farmLocation" data-i18n-ph="farm.location_ph" placeholder="مثال: أبوظبي — الغربية"></div>
+                <div class="fg fg-full"><label data-i18n="farm.manager">مدير المزرعة</label>
+                    <select id="farmManagerId"><option value="" data-i18n="farm.manager_ph">— يمكن تعيينه لاحقاً —</option></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" id="farmFormSubmit" data-i18n="farm.create_btn">إنشاء المزرعة</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal('farmModal')" data-i18n="farm.cancel">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add / Edit User -->
+<div class="modal-overlay" id="addUserModal">
+    <div class="modal-box" style="max-width:540px">
+        <div class="modal-hdr">
+            <h3 id="userModalTitle" data-i18n="user.add_title">إضافة مستخدم</h3>
+            <button class="modal-close" onclick="closeModal('addUserModal')">✕</button>
+        </div>
+        <form id="userForm" class="modal-body">
+            <input type="hidden" id="userFormId">
+            <div class="grid-form">
+                <div class="fg"><label data-i18n="user.username">اسم المستخدم <em>*</em></label><input type="text" id="newUsername" data-i18n-ph="user.username_ph" placeholder="ahmed_farm" required></div>
+                <div class="fg"><label data-i18n="user.display">الاسم الكامل <em>*</em></label><input type="text" id="newDisplayName" data-i18n-ph="user.display_ph" placeholder="أحمد العتيبي" required></div>
+                <div class="fg"><label data-i18n="user.password">كلمة المرور <em id="pwdReqStar">*</em></label><input type="password" id="newPassword" placeholder="••••••" minlength="4"></div>
+                <div class="fg"><label data-i18n="user.role">الدور الوظيفي <em>*</em></label>
+                    <select id="newRole" required>
+                        <option value="" data-i18n="user.role_ph">اختر...</option>
+                        <option value="farm_manager" id="optFarmManager" data-i18n="user.role_manager">مدير المزرعة</option>
+                        <option value="employee" data-i18n="user.role_employee">موظف</option>
+                    </select>
+                </div>
+                <div class="fg fg-full" id="newFarmGroup" style="display:none">
+                    <label data-i18n="user.farms">المزارع المسموحة (يمكن اختيار أكثر من مزرعة) <em>*</em></label>
+                    <div class="farms-check-grid" id="userFarmsList"></div>
+                    <small class="fhint" data-i18n="user.farms_ph">حدد المزارع المسموحة لهذا المستخدم</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" id="userFormSubmit" data-i18n="user.add_btn">إضافة</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal('addUserModal')" data-i18n="user.cancel">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change Password -->
+<div class="modal-overlay" id="pwdModal">
+    <div class="modal-box" style="max-width:400px">
+        <div class="modal-hdr">
+            <h3 data-i18n="pwd.title">تغيير كلمة المرور</h3>
+            <button class="modal-close" onclick="closeModal('pwdModal')">✕</button>
+        </div>
+        <form id="pwdForm" class="modal-body">
+            <input type="hidden" id="pwdUserId">
+            <div class="fg" style="margin-bottom:1.25rem">
+                <label data-i18n="pwd.new">كلمة المرور الجديدة <em>*</em></label>
+                <input type="password" id="pwdNew" data-i18n-ph="pwd.new_ph" placeholder="أدخل كلمة مرور جديدة" minlength="4" required>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" data-i18n="pwd.save">حفظ</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal('pwdModal')" data-i18n="pwd.cancel">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Log -->
+<div class="modal-overlay" id="editLogModal">
+    <div class="modal-box" style="max-width:560px">
+        <div class="modal-hdr">
+            <h3 data-i18n="edit.log_title">تعديل السجل اليومي</h3>
+            <button class="modal-close" onclick="closeModal('editLogModal')">✕</button>
+        </div>
+        <form id="editLogForm" class="modal-body">
+            <input type="hidden" id="editLogId">
+            <div class="grid-form">
+                <div class="fg"><label data-i18n="daily.date">التاريخ</label><input type="date" id="elDate"></div>
+                <div class="fg"><label data-i18n="daily.weight">الوزن (جم)</label><input type="number" id="elWeight" min="50" max="5000"></div>
+                <div class="fg"><label data-i18n="daily.food_type">نوع الأكل</label>
+                    <select id="elFoodType">
+                        <option value="">—</option>
+                        <option data-i18n="food.pigeon">حمام</option>
+                        <option data-i18n="food.quail">سمان</option>
+                        <option data-i18n="food.chicken">دجاج</option>
+                        <option data-i18n="food.rabbit">أرانب</option>
+                        <option data-i18n="food.beef">لحم بقري</option>
+                        <option data-i18n="food.live">فرائس حية</option>
+                        <option data-i18n="food.mixed">مختلط</option>
+                    </select>
+                </div>
+                <div class="fg"><label data-i18n="daily.food_amt">كمية الأكل (جم)</label><input type="number" id="elFoodAmt" min="1" max="2000"></div>
+                <div class="fg"><label data-i18n="daily.train_type">نوع التدريب</label>
+                    <select id="elTrainType">
+                        <option value="">—</option>
+                        <option data-i18n="train.free">طيران حر</option>
+                        <option data-i18n="train.lure">تدريب على الطعم</option>
+                        <option data-i18n="train.drone">طيران مع الطائرة</option>
+                        <option data-i18n="train.land">تمرين البر</option>
+                        <option data-i18n="train.race">سباق مسافة</option>
+                        <option data-i18n="train.return">تمرين العودة</option>
+                        <option data-i18n="train.rest">راحة</option>
+                    </select>
+                </div>
+                <div class="fg"><label data-i18n="daily.distance">المسافة (كم)</label><input type="number" id="elDistance" min="0" max="500" step="0.1"></div>
+                <div class="fg"><label data-i18n="daily.duration">المدة (دقيقة)</label><input type="number" id="elDuration" min="1" max="480"></div>
+                <div class="fg"><label data-i18n="daily.notes">ملاحظات</label><input type="text" id="elNotes"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" data-i18n="edit.log_save">حفظ التعديلات</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editLogModal')" data-i18n="edit.cancel">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+<script src="app.js"></script>
+</body>
+</html>
